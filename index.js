@@ -32,6 +32,15 @@ async function run() {
       const tutors = await tutorsCollection.find().toArray();
       res.send(tutors);
     });
+    
+    app.get("/tutors/:id", async (req, res) => {
+      const {id} = req.params.id;
+      const query = {
+        _id: new Object(id)
+      }
+      const result = await tutorsCollection.findOne(query);
+      res.send(result);
+    });
 
     app.post("/tutors", async (req, res) => {
       const tutor = req.body;
