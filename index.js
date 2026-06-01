@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 dotenv.config();
 const app = express();
 const port = process.env.PORT;
@@ -26,26 +26,23 @@ async function run() {
     await client.connect();
     const db = client.db("mediqueue");
     const tutorsCollection = db.collection("tutors");
-    console.log("Successfully Connected to MongoDB:");
+    console.log("Successfully Connected to MongoDB: mediqueue");
 
     app.get("/tutors", async (req, res) => {
       const tutors = await tutorsCollection.find().toArray();
+      console.log(tutors);
       res.send(tutors);
     });
 
     app.get("/tutors/:id", async (req, res) => {
-      const { id } = req.params.id;
+      const { id } = req.params;
       const query = {
-        _id: new Object(id),
+        _id: new ObjectId(id),
       };
       const result = await tutorsCollection.findOne(query);
       res.send(result);
     });
 
-    app.post("/tutors", async (req, res) => {
-      const result = await tutorsCollection.insertOne(tutor);
-      res.send({ insertedId: result.insertedId });
-    });
 
   } finally {
     // await client.close();
