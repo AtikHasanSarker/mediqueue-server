@@ -31,7 +31,15 @@ async function run() {
     app.get("/tutors", async (req, res) => {
       const tutors = await tutorsCollection.find().toArray();
       console.log(tutors);
-      res.send(tutors);
+      res.json(tutors);
+    });
+
+    app.post("/tutors", async (req, res) => {
+      const tutorData = req.body;
+      const result = await db
+        .collection("tutors")
+        .insertOne(tutorData);
+      res.json(result);
     });
 
     app.get("/tutors/:id", async (req, res) => {
@@ -40,13 +48,19 @@ async function run() {
         _id: new ObjectId(id),
       };
       const result = await tutorsCollection.findOne(query);
-      res.send(result);
+      res.json(result);
     });
 
-    app.post('/booking-sessions', async (req, res) => {
+    app.post('/booked-sessions', async (req, res) => {
       const bookingData = req.body;
-      const result = await db.collection('booking-sessions').insertOne(bookingData);
-      res.send(result);
+      const result = await db.collection('booked-sessions').insertOne(bookingData);
+      res.json(result);
+    });
+
+    app.get("/booked-sessions", async (req, res) => {
+      const bookedSessions = await db.collection('booked-sessions').find().toArray();
+      console.log(bookedSessions);
+      res.json(bookedSessions);
     });
 
   } finally {
