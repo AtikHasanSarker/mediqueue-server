@@ -43,6 +43,11 @@ async function run() {
       res.send(result);
     });
 
+    app.post('/booking-sessions', async (req, res) => {
+      const bookingData = req.body;
+      const result = await db.collection('booking-sessions').insertOne(bookingData);
+      res.send(result);
+    });
 
   } finally {
     // await client.close();
