@@ -51,6 +51,16 @@ async function run() {
       res.json(result);
     });
 
+    app.get("/tutors/:userId", async (req, res) => {
+      const {userId} = req.params;
+      const query = {
+        userId: userId,
+      };
+      const tutors = await tutorsCollection.find(query).toArray();
+      console.log(tutors);
+      res.json(tutors);
+    });
+
     app.post('/booked-sessions', async (req, res) => {
       const bookingData = req.body;
       const result = await db.collection('booked-sessions').insertOne(bookingData);
