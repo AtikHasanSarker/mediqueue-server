@@ -33,6 +33,12 @@ async function run() {
       console.log(tutors);
       res.json(tutors);
     });
+    
+    app.get("/availableTutors", async (req, res) => {
+      const tutors = await tutorsCollection.find().skip(3).limit(6).toArray();
+      console.log(tutors);
+      res.json(tutors);
+    });
 
     app.post("/tutors", async (req, res) => {
       const tutorData = req.body;
