@@ -33,7 +33,7 @@ async function run() {
       console.log(tutors);
       res.json(tutors);
     });
-    
+
     app.get("/availableTutors", async (req, res) => {
       const tutors = await tutorsCollection.find().skip(3).limit(6).toArray();
       console.log(tutors);
@@ -57,8 +57,17 @@ async function run() {
       res.json(result);
     });
 
-    app.get("/tutors/:userId", async (req, res) => {
-      const {userId} = req.params;
+    app.delete("/tutors/:id", async (req, res) => {
+      const { id } = req.params;
+      const query = {
+        _id: new ObjectId(id),
+      };
+      const result = await tutorsCollection.deleteOne(query);
+      res.json(result);
+    });
+
+    app.get("/my-tutors/:userId", async (req, res) => {
+      const { userId } = req.params;
       const query = {
         userId: userId,
       };
@@ -73,8 +82,15 @@ async function run() {
       res.json(result);
     });
 
-    app.get("/booked-sessions", async (req, res) => {
-      const bookedSessions = await db.collection('booked-sessions').find().toArray();
+    app.get("/booked-sessions/:userId", async (req, res) => {
+      const { userId } = req.params;
+      const query = {
+        userId: userId,
+      };
+      const bookedSessions = await db
+        .collection("booked-sessions")
+        .find(query)
+        .toArray();
       console.log(bookedSessions);
       res.json(bookedSessions);
     });
