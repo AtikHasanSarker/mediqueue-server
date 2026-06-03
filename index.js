@@ -20,31 +20,79 @@ const client = new MongoClient(uri, {
   },
 });
 
-
 async function run() {
   try {
     await client.connect();
     const db = client.db("mediqueue");
     const tutorsCollection = db.collection("tutors");
+    const bookedSessionsCollection = db.collection("booked-sessions");
     console.log("Successfully Connected to MongoDB: mediqueue");
 
+    // with searching and sorting
     app.get("/tutors", async (req, res) => {
-      const tutors = await tutorsCollection.find().toArray();
-      console.log(tutors);
-      res.json(tutors);
+      console.log("TUTORS ROUTE HIT");
+      console.log(req.query);
+      const { search, date } = req.query;
+      console.log("SEARCH:", search);
+      let cursor;
+
+      //search
+      if (search?.trim()) {
+        cursor = await tutorsCollection.find({
+          $or: [
+            {
+              name: {
+                $regex: search,
+                $options: "i",
+              },
+            },
+            {
+              subject: {
+                $regex: search,
+                $options: "i",
+              },
+            },
+            {
+              institution: {
+                $regex: search,
+                $options: "i",
+              },
+            },
+            {
+              location: {
+                $regex: search,
+                $options: "i",
+              },
+            },
+            {
+              teachingMode: {
+                $regex: search,
+                $options: "i",
+              },
+            },
+          ],
+        });
+      } else if (date) {
+        cursor = await tutorsCollection.find({
+          sessionStartDate: {
+            $gte: date,
+          },
+        });
+      } else {
+        cursor = tutorsCollection.find();
+      }
+      const result = await cursor.toArray();
+      res.send(result);
     });
 
     app.get("/availableTutors", async (req, res) => {
       const tutors = await tutorsCollection.find().skip(3).limit(6).toArray();
-      console.log(tutors);
       res.json(tutors);
     });
 
     app.post("/tutors", async (req, res) => {
       const tutorData = req.body;
-      const result = await db
-        .collection("tutors")
-        .insertOne(tutorData);
+      const result = await db.collection("tutors").insertOne(tutorData);
       res.json(result);
     });
 
@@ -66,19 +114,42 @@ async function run() {
       res.json(result);
     });
 
+    app.patch("/tutors/:id", async (req, res) => {
+      const { id } = req.params;
+
+      const result = await tutorsCollection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $inc: {
+            totalSlot: -1,
+          },
+        },
+      );
+      res.json(result);
+    });
+
     app.get("/my-tutors/:userId", async (req, res) => {
       const { userId } = req.params;
       const query = {
         userId: userId,
       };
       const tutors = await tutorsCollection.find(query).toArray();
-      console.log(tutors);
       res.json(tutors);
     });
 
-    app.post('/booked-sessions', async (req, res) => {
+    app.patch("/my-tutors/:id", async (req, res) => {
+      const { id } = req.params;
+
+      const result = await tutorsCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: req.body },
+      );
+      res.json(result);
+    });
+
+    app.post("/booked-sessions", async (req, res) => {
       const bookingData = req.body;
-      const result = await db.collection('booked-sessions').insertOne(bookingData);
+      const result = await bookedSessionsCollection.insertOne(bookingData);
       res.json(result);
     });
 
@@ -87,21 +158,34 @@ async function run() {
       const query = {
         userId: userId,
       };
-      const bookedSessions = await db
-        .collection("booked-sessions")
+      const bookedSessions = await bookedSessionsCollection
         .find(query)
         .toArray();
-      console.log(bookedSessions);
       res.json(bookedSessions);
     });
 
+    app.patch("/booked-sessions/:id", async (req, res) => {
+      const id = req.params.id;
+
+      const result = await bookedSessionsCollection.updateOne(
+        {
+          _id: new ObjectId(id),
+        },
+        {
+          $set: {
+            status: "Cancelled",
+          },
+        },
+      );
+
+      res.send(result);
+    });
   } finally {
     // await client.close();
   }
 }
 
 run().catch(console.dir);
-
 
 app.get("/", (req, res) => {
   res.send("Server is running for tutors!");
