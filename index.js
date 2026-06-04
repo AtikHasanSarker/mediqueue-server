@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
 dotenv.config();
 const app = express();
 const port = process.env.PORT;
@@ -20,6 +21,27 @@ const client = new MongoClient(uri, {
   },
 });
 
+const JWKS = createRemoteJWKSet(new URL("http://localhost:3000/api/auth/jwks"));
+
+const verifyToken = async (req, res, next) => {
+  const authHeader = req?.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  const token = authHeader.split(" ")[1];
+  if (!token) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  try {
+    const { payload } = await jwtVerify(token, JWKS);
+    console.log("payload from jwt:", payload);
+    next();
+  } catch (error) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+};
+
 async function run() {
   try {
     await client.connect();
@@ -30,10 +52,7 @@ async function run() {
 
     // with searching and sorting
     app.get("/tutors", async (req, res) => {
-      console.log("TUTORS ROUTE HIT");
-      console.log(req.query);
       const { search, date } = req.query;
-      console.log("SEARCH:", search);
       let cursor;
 
       //search
@@ -90,13 +109,13 @@ async function run() {
       res.json(tutors);
     });
 
-    app.post("/tutors", async (req, res) => {
+    app.post("/tutors", verifyToken, async (req, res) => {
       const tutorData = req.body;
       const result = await db.collection("tutors").insertOne(tutorData);
       res.json(result);
     });
 
-    app.get("/tutors/:id", async (req, res) => {
+    app.get("/tutors/:id", verifyToken, async (req, res) => {
       const { id } = req.params;
       const query = {
         _id: new ObjectId(id),
@@ -105,7 +124,7 @@ async function run() {
       res.json(result);
     });
 
-    app.delete("/tutors/:id", async (req, res) => {
+    app.delete("/tutors/:id", verifyToken, async (req, res) => {
       const { id } = req.params;
       const query = {
         _id: new ObjectId(id),
@@ -137,7 +156,7 @@ async function run() {
       res.json(tutors);
     });
 
-    app.patch("/my-tutors/:id", async (req, res) => {
+    app.patch("/my-tutors/:id", verifyToken, async (req, res) => {
       const { id } = req.params;
 
       const result = await tutorsCollection.updateOne(
@@ -147,7 +166,7 @@ async function run() {
       res.json(result);
     });
 
-    app.post("/booked-sessions", async (req, res) => {
+    app.post("/booked-sessions", verifyToken, async (req, res) => {
       const bookingData = req.body;
       const result = await bookedSessionsCollection.insertOne(bookingData);
       res.json(result);
